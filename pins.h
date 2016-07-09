@@ -395,7 +395,7 @@
   #if MOTHERBOARD == 33 || MOTHERBOARD == 35
     #define FAN_PIN            9 // (Sprinter config)
   #else
-    #define FAN_PIN            4 // IO pin. Buffer needed
+    #define FAN_PIN            6 // IO pin. Buffer needed
   #endif
 
   #if MOTHERBOARD == 77
