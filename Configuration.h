@@ -101,11 +101,11 @@
 //#define DEBUG_MESSAGES
 
 //Speed for autocalibration travel and probing moves
-#define AUTOCAL_TRAVELRATE 100 // mm/sec
-#define AUTOCAL_PROBERATE 70 // mm/sec
+#define AUTOCAL_TRAVELRATE 150 // mm/sec
+#define AUTOCAL_PROBERATE 20 // mm/sec
 
 //Amount to lift head after probing a point
-#define AUTOCAL_PROBELIFT 10 // mm
+#define AUTOCAL_PROBELIFT 3 // mm
 
 // Precision for G30 delta autocalibration function (calibrate to within +/- this value)
 #define AUTOCALIBRATION_PRECISION 0.05// mm
@@ -130,7 +130,7 @@
 #define TOWER_A_DIAGROD_ADJ 0 //Front Left Tower
 #define TOWER_B_DIAGROD_ADJ 0 //Front Right Tower
 #define TOWER_C_DIAGROD_ADJ 0 //Rear Tower
-#define BED_DIAMETER 100 // mm
+#define BED_DIAMETER 180 // mm
 
 // Z-Probe variables
 // Start and end location values are used to deploy/retract the probe (will move from start to end and back again) 

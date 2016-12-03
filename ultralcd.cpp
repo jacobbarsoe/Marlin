@@ -339,6 +339,47 @@ static void lcd_tune_menu()
     END_MENU();
 }
 
+static void lcd_calib_menu();
+
+static void lcd_adjust_z_min()
+{
+    if (encoderPosition != 0)
+    {
+        max_pos[Z_AXIS] += float((int)encoderPosition) * 0.05;
+        encoderPosition = 0;
+        lcdDrawUpdate = 1;
+    }
+    if (lcdDrawUpdate)
+    {
+        lcd_implementation_drawedit(PSTR("Z HEIGHT"), ftostr31(max_pos[Z_AXIS]));
+    }
+    if (LCD_CLICKED)
+    {
+        lcd_quick_feedback();
+        currentMenu = lcd_calib_menu;
+        encoderPosition = 0;
+        //update z height
+        #ifdef DELTA
+        set_delta_constants();
+        #endif     
+    }
+}
+
+static void lcd_calib_menu()
+{
+    START_MENU();
+    MENU_ITEM(back, "back...", lcd_prepare_menu);
+    MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
+    MENU_ITEM(gcode, MSG_SET_ORIGIN, PSTR("G92"));
+    MENU_ITEM(gcode, "Goto zero", PSTR("G0 X0 Y0 Z0 F9000"));
+    MENU_ITEM(gcode, "Goto x1", PSTR("G0 X-90 Y-48 Z0 F9000"));
+    MENU_ITEM(gcode, "Goto x2", PSTR("G0 X0 Y90 Z0 F9000"));
+    MENU_ITEM(gcode, "Goto x3", PSTR("G0 X90 Y-48 Z0 F9000"));
+    MENU_ITEM(gcode, "Start AutoCalib", PSTR("G30 A 0.1"));
+    MENU_ITEM(submenu, "Adjust Z Height", lcd_adjust_z_min);
+    END_MENU();
+}
+
 static void lcd_prepare_menu()
 {
     START_MENU();
@@ -347,8 +388,7 @@ static void lcd_prepare_menu()
     //MENU_ITEM(function, MSG_AUTOSTART, lcd_autostart_sd);
 #endif
     MENU_ITEM(gcode, MSG_DISABLE_STEPPERS, PSTR("M84"));
-    MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
-    //MENU_ITEM(gcode, MSG_SET_ORIGIN, PSTR("G92 X0 Y0 Z0"));
+    MENU_ITEM(submenu, "Calib menu", lcd_calib_menu); 
     MENU_ITEM(function, MSG_PREHEAT_PLA, lcd_preheat_pla);
     MENU_ITEM(function, MSG_PREHEAT_ABS, lcd_preheat_abs);
     MENU_ITEM(function, MSG_COOLDOWN, lcd_cooldown);
@@ -363,6 +403,7 @@ static void lcd_prepare_menu()
     MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
     END_MENU();
 }
+
 
 float move_menu_scale;
 static void lcd_move_menu_axis();
