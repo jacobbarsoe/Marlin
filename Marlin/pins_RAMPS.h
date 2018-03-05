@@ -91,12 +91,12 @@
 #define X_STEP_PIN         54
 #define X_DIR_PIN          55
 #define X_ENABLE_PIN       38
-#define X_CS_PIN           40
+#define X_CS_PIN           64
 
 #define Y_STEP_PIN         60
 #define Y_DIR_PIN          61
 #define Y_ENABLE_PIN       56
-#define Y_CS_PIN           42
+#define Y_CS_PIN           40
 
 #define Z_STEP_PIN         46
 #define Z_DIR_PIN          48
@@ -173,7 +173,7 @@
 
 // SPI for Max6675 or Max31855 Thermocouple
 #if DISABLED(SDSUPPORT)
-  #define MAX6675_SS       66 // Do not use pin 53 if there is even the remote possibility of using Display/SD card
+  #define MAX6675_SS       -1 // Do not use pin 53 if there is even the remote possibility of using Display/SD card
 #else
   #define MAX6675_SS       66 // Do not use pin 49 as this is tied to the switch inside the SD card socket to detect if there is an SD card present
 #endif
