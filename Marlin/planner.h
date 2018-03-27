@@ -40,7 +40,7 @@
   #include "vector_3.h"
 #endif
 
-enum BlockFlagBit {
+enum BlockFlagBit : char {
   // Recalculate trapezoids on entry junction. For optimization.
   BLOCK_BIT_RECALCULATE,
 
@@ -49,9 +49,6 @@ enum BlockFlagBit {
   // from a safe speed (in consideration of jerking from zero speed).
   BLOCK_BIT_NOMINAL_LENGTH,
 
-  // Start from a halt at the start of this block, respecting the maximum allowed jerk.
-  BLOCK_BIT_START_FROM_FULL_HALT,
-
   // The block is busy
   BLOCK_BIT_BUSY,
 
@@ -59,10 +56,9 @@ enum BlockFlagBit {
   BLOCK_BIT_CONTINUED
 };
 
-enum BlockFlag {
+enum BlockFlag : char {
   BLOCK_FLAG_RECALCULATE          = _BV(BLOCK_BIT_RECALCULATE),
   BLOCK_FLAG_NOMINAL_LENGTH       = _BV(BLOCK_BIT_NOMINAL_LENGTH),
-  BLOCK_FLAG_START_FROM_FULL_HALT = _BV(BLOCK_BIT_START_FROM_FULL_HALT),
   BLOCK_FLAG_BUSY                 = _BV(BLOCK_BIT_BUSY),
   BLOCK_FLAG_CONTINUED            = _BV(BLOCK_BIT_CONTINUED)
 };
@@ -512,14 +508,14 @@ class Planner {
     /**
      * Does the buffer have any blocks queued?
      */
-    static bool blocks_queued() { return (block_buffer_head != block_buffer_tail); }
+    static inline bool has_blocks_queued() { return (block_buffer_head != block_buffer_tail); }
 
     /**
      * "Discard" the block and "release" the memory.
      * Called when the current block is no longer needed.
      */
     FORCE_INLINE static void discard_current_block() {
-      if (blocks_queued())
+      if (has_blocks_queued())
         block_buffer_tail = BLOCK_MOD(block_buffer_tail + 1);
     }
 
@@ -528,7 +524,7 @@ class Planner {
      * Called after an interrupted move to throw away the rest of the move.
      */
     FORCE_INLINE static bool discard_continued_block() {
-      const bool discard = blocks_queued() && TEST(block_buffer[block_buffer_tail].flag, BLOCK_BIT_CONTINUED);
+      const bool discard = has_blocks_queued() && TEST(block_buffer[block_buffer_tail].flag, BLOCK_BIT_CONTINUED);
       if (discard) discard_current_block();
       return discard;
     }
@@ -539,7 +535,7 @@ class Planner {
      * WARNING: Called from Stepper ISR context!
      */
     static block_t* get_current_block() {
-      if (blocks_queued()) {
+      if (has_blocks_queued()) {
         block_t * const block = &block_buffer[block_buffer_tail];
 
         // If the block has no trapezoid calculated, it's unsafe to execute.

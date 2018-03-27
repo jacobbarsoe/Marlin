@@ -63,7 +63,7 @@
 #include "temperature.h"
 #include "ultralcd.h"
 #include "language.h"
-#include "gcode.h"
+#include "parser.h"
 
 #include "Marlin.h"
 
@@ -278,18 +278,26 @@ void Planner::reverse_pass_kernel(block_t* const current, const block_t * const 
  * Once in reverse and once forward. This implements the reverse pass.
  */
 void Planner::reverse_pass() {
-  if (movesplanned() > 3) {
-    const uint8_t endnr = BLOCK_MOD(block_buffer_tail + 2); // tail is running. tail+1 shouldn't be altered because it's connected to the running block.
-                                                            // tail+2 because the index is not yet advanced when checked
+  if (movesplanned() > 2) {
+    const uint8_t endnr = BLOCK_MOD(block_buffer_tail + 1); // tail is running. tail+1 shouldn't be altered because it's connected to the running block.
     uint8_t blocknr = prev_block_index(block_buffer_head);
     block_t* current = &block_buffer[blocknr];
+
+    // Last/newest block in buffer:
+    const float max_entry_speed = current->max_entry_speed;
+    if (current->entry_speed != max_entry_speed) {
+      // If nominal length true, max junction speed is guaranteed to be reached. Only compute
+      // for max allowable speed if block is decelerating and nominal length is false.
+      current->entry_speed = TEST(current->flag, BLOCK_BIT_NOMINAL_LENGTH)
+        ? max_entry_speed
+        : min(max_entry_speed, max_allowable_speed(-current->acceleration, MINIMUM_PLANNER_SPEED, current->millimeters));
+      SBI(current->flag, BLOCK_BIT_RECALCULATE);
+    }
 
     do {
       const block_t * const next = current;
       blocknr = prev_block_index(blocknr);
       current = &block_buffer[blocknr];
-      if (TEST(current->flag, BLOCK_BIT_START_FROM_FULL_HALT)) // Up to this every block is already optimized.
-        break;
       reverse_pass_kernel(current, next);
     } while (blocknr != endnr);
   }
@@ -449,7 +457,7 @@ void Planner::check_axes_activity() {
     #endif
   #endif
 
-  if (blocks_queued()) {
+  if (has_blocks_queued()) {
 
     #if FAN_COUNT > 0
       for (uint8_t i = 0; i < FAN_COUNT; i++)
@@ -875,7 +883,7 @@ void Planner::_buffer_steps(const int32_t (&target)[XYZE]
 
   #if ENABLED(AUTO_POWER_CONTROL)
     if (block->steps[X_AXIS] || block->steps[Y_AXIS] || block->steps[Z_AXIS])
-        powerManager.power_on();
+      powerManager.power_on();
   #endif
 
   //enable active axes
@@ -1413,17 +1421,11 @@ void Planner::_buffer_steps(const int32_t (&target)[XYZE]
     // Now the transition velocity is known, which maximizes the shared exit / entry velocity while
     // respecting the jerk factors, it may be possible, that applying separate safe exit / entry velocities will achieve faster prints.
     const float vmax_junction_threshold = vmax_junction * 0.99f;
-    if (previous_safe_speed > vmax_junction_threshold && safe_speed > vmax_junction_threshold) {
-      // Not coasting. The machine will stop and start the movements anyway,
-      // better to start the segment from start.
-      SBI(block->flag, BLOCK_BIT_START_FROM_FULL_HALT);
+    if (previous_safe_speed > vmax_junction_threshold && safe_speed > vmax_junction_threshold)
       vmax_junction = safe_speed;
-    }
   }
-  else {
-    SBI(block->flag, BLOCK_BIT_START_FROM_FULL_HALT);
+  else
     vmax_junction = safe_speed;
-  }
 
   // Max entry speed of this block equals the max exit speed of the previous block.
   block->max_entry_speed = vmax_junction;
@@ -1534,7 +1536,7 @@ void Planner::buffer_segment(const float &a, const float &b, const float &c, con
   //*/
 
   // Always split the first move into two (if not homing or probing)
-  if (!blocks_queued()) {
+  if (!has_blocks_queued()) {
 
     #define _BETWEEN(A) (position[A##_AXIS] + target[A##_AXIS]) >> 1
     const int32_t between[ABCE] = { _BETWEEN(A), _BETWEEN(B), _BETWEEN(C), _BETWEEN(E) };
@@ -1680,8 +1682,7 @@ void Planner::refresh_positioning() {
 #if ENABLED(AUTOTEMP)
 
   void Planner::autotemp_M104_M109() {
-    autotemp_enabled = parser.seen('F');
-    if (autotemp_enabled) autotemp_factor = parser.value_celsius_diff();
+    if ((autotemp_enabled = parser.seen('F'))) autotemp_factor = parser.value_float();
     if (parser.seen('S')) autotemp_min = parser.value_celsius();
     if (parser.seen('B')) autotemp_max = parser.value_celsius();
   }
